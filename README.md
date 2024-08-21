@@ -80,21 +80,19 @@ If all tests pass, you will see "Test Passed" for each packet.
 
 ## Package Structure: 
 
- +---------------+
-  |  Header     |
-  +---------------+
-  |  Source Address  |
-  |  Destination Address |
-  |  Packet Length    |
-  |  Sequence Number  |
-  +---------------+
-  |  Payload     |
-  |  P-TMSI (32 bits) |
-  |  TLLI          |
-  |  User Data    |
-  +---------------+
-  |  Checksum    |
-  +---------------+
+ | Section         | Contents               |
+|-----------------|------------------------|
+| **Header**      |                        |
+|                 | Source Address         |
+|                 | Destination Address    |
+|                 | Packet Length          |
+|                 | Sequence Number        |
+| **Payload**     |                        |
+|                 | P-TMSI (32 bits)       |
+|                 | TLLI                   |
+|                 | User Data              |
+| **Checksum**    |                        |
+
 
 Additional details:
 Detailed Structure and Data of GPRS Packets Containing P-TMSI
@@ -123,12 +121,12 @@ Theoretical Maximum: Ranges from 56 kbps to 114 kbps, depending on the coding sc
 Practical Considerations: Actual data rates may be lower due to air interface impairments and device limitations
 
 ## Project Structure
-gprs_gen_decoder/
-│
-├── gprs_packet_generator.py  # Contains the GPRSPacketGenerator class
-├── gprs_packet_decoder.py    # Contains the GPRSPacketDecoder class
-├── main.py                   # Example usage of the generator and decoder
-└── README.md                 # Project documentation
+
+- `gprs_gen_decoder/`
+  - `gprs_packet_generator.py`  - Contains the `GPRSPacketGenerator` class
+  - `gprs_packet_decoder.py`    - Contains the `GPRSPacketDecoder` class
+  - `main.py`                   - Example usage of the generator and decoder
+  - `README.md`                 - Project documentation
 
 ## Classes
 
