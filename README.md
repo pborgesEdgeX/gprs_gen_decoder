@@ -2,7 +2,9 @@
 
 ## Overview
 
-This project provides a Python implementation for generating and decoding GPRS (General Packet Radio Service) packets. It supports different coding schemes, including CS1, CS2, CS3, and CS4. The generated packets contain a header, a payload with P-TMSI (Packet Temporary Mobile Subscriber Identity), TLLI (Temporary Logical Link Identifier), user data, and a checksum for error detection.
+This project provides a Python implementation for generating and decoding GPRS (General Packet Radio Service) packets. It supports different coding schemes, including CS1, CS2, CS3, and CS4. The generated packets contain a header, a payload with P-TMSI (Packet Temporary Mobile Subscriber Identity), TLLI (Temporary Logical Link Identifier), user data, and a checksum for error detection. The generator can operate in two modes:
+- Single Mode: Generates and processes individual packets sequentially.
+- Stream Mode: Generates a stream of concatenated packets which are then processed together.
 
 ## Features
 
@@ -27,44 +29,36 @@ This project provides a Python implementation for generating and decoding GPRS (
 Copy code
 cd gprs_gen_decoder
 ```
-
-## Usage
-The example code provided in main.py demonstrates how to generate and decode GPRS packets for each coding scheme.
-
-```python
 import logging
-from gprs_packet_generator import GPRSPacketGenerator, GPRSPacketDecoder
+from grps_gen_decoder import GPRSPacketGenerator, GPRSPacketDecoder
 
-if __name__ == "__main__":
-    coding_schemes = ['CS1', 'CS2', 'CS3', 'CS4']  # All coding schemes
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    for scheme in coding_schemes:
-        logging.info(f"--- Testing Coding Scheme: {scheme} ---")
+coding_schemes = ['CS1', 'CS2', 'CS3', 'CS4']
 
-        generator = GPRSPacketGenerator(scheme)
-        decoder = GPRSPacketDecoder(scheme)
+for scheme in coding_schemes:
+    logging.info(f"--- Testing Coding Scheme: {scheme} ---")
 
-        for i in range(10):
-            # Generate and decode packet
-            packet, original_message = generator.generate_packet()
+    # Initialize generator in stream mode for testing
+    generator = GPRSPacketGenerator(scheme, mode='stream', packet_limit=100)
+    decoder = GPRSPacketDecoder(scheme)
+
+    packets, messages = generator.run()
+
+    if generator.mode == 'single':
+        for i, packet in enumerate(packets):
             decoded_data = decoder.decode_packet(packet)
-
-            # Log the details of the decoded packet
-            logging.info(f"Packet {i + 1} Details:")
-            logging.info(f"Source: {decoded_data['source']}")
-            logging.info(f"Destination: {decoded_data['destination']}")
-            logging.info(f"Length: {decoded_data['length']}")
-            logging.info(f"P-TMSI: {decoded_data['P-TMSI']}")
-            logging.info(f"TLLI: {decoded_data['TLLI']}")
-            logging.info(f"Message: {decoded_data['message']}")
-            logging.info(f"Checksum Valid: {decoded_data['checksum_valid']}")
-            logging.info("*" * 40)
-
-            # Verify that the original and decoded messages match
-            assert original_message == decoded_data['message'], "Message mismatch!"
+            assert messages[i] == decoded_data['message'], "Message mismatch!"
             assert decoded_data['checksum_valid'], "Checksum validation failed!"
-
             logging.info("Test Passed")
+
+    elif generator.mode == 'stream':
+        decoded_packets = decoder.decode_stream(packets)
+        for i, decoded_data in enumerate(decoded_packets):
+            assert messages[i] == decoded_data['message'], "Message mismatch!"
+            assert decoded_data['checksum_valid'], "Checksum validation failed!"
+            logging.info("Test Passed")
+
 ```
 ## Expected Output
 The script will log detailed information about each packet generated and decoded, including:
@@ -180,6 +174,15 @@ Methods
 __init__(coding_scheme): Initializes the decoder with a specific coding scheme.
 decode_packet(packet): Decodes a GPRS packet and returns the extracted data.
 calculate_checksum(data): Calculates the checksum for error detection.
+
+## Features
+- Single Mode: Generates and processes packets one by one.
+- Stream Mode: Generates a continuous stream of packets, concatenated into a single byte array for processing.
+- Multiple Coding Schemes: Supports CS1, CS2, CS3, and CS4 GPRS coding schemes.
+- Checksum Validation: Ensures data integrity using checksum validation.
+
+## Future Work
+- Stream or single mode have not yet been stress tested, or tested with real data.
 
 # Contributors
 Paulo Borges (pborges7@icloud.com)
