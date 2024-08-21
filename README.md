@@ -78,6 +78,50 @@ The script will log detailed information about each packet generated and decoded
 - Checksum validity
 If all tests pass, you will see "Test Passed" for each packet.
 
+## Package Structure: 
+
+ +---------------+
+  |  Header     |
+  +---------------+
+  |  Source Address  |
+  |  Destination Address |
+  |  Packet Length    |
+  |  Sequence Number  |
+  +---------------+
+  |  Payload     |
+  |  P-TMSI (32 bits) |
+  |  TLLI          |
+  |  User Data    |
+  +---------------+
+  |  Checksum    |
+  +---------------+
+
+Additional details:
+Detailed Structure and Data of GPRS Packets Containing P-TMSI
+To decode GPRS packets containing P-TMSI, understanding the detailed structure and data format is crucial. Here is a breakdown of the key components:
+1. P-TMSI
+Length: 32 bits
+Purpose: Temporary identifier of a GPRS subscriber for GPRS-mobility management
+Allocation: Issued by the Serving GPRS Support Node (SGSN)
+Uniqueness: Unique within a given Routing Area (RA)
+2. TLLI (Temporary Logical Link Identifier)
+Association: Associated with the P-TMSI for logical link identification
+Purpose: Facilitates efficient routing and mobility management within the GPRS network
+3. GPRS Packet Structure
+Header: Contains source and destination addresses, packet length, and sequence number
+Payload: Includes the P-TMSI, TLLI, and user data
+Checksum: Used for error detection and correction
+4. Coding Schemes
+Types: CS1, CS2, CS3, and CS4, containing maximum data of 22, 32, 38, and 52 octets respectively
+Selection: Depends on the trade-off between desired throughput and reliability
+5. Transmission
+RLC Segmentation: Data is segmented into RLC blocks before transmission
+Header Insertions: Headers are inserted into RLC blocks for control information
+Air Interface: RLC blocks are transmitted over the air interface
+6. Data Rates
+Theoretical Maximum: Ranges from 56 kbps to 114 kbps, depending on the coding scheme used
+Practical Considerations: Actual data rates may be lower due to air interface impairments and device limitations
+
 ## Project Structure
 gprs_gen_decoder/
 │
