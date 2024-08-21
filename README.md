@@ -69,11 +69,45 @@ if __name__ == "__main__":
 ## Expected Output
 The script will log detailed information about each packet generated and decoded, including:
 
--- Source address
--- Destination address
--- Packet length
--- P-TMSI
--- TLLI
--- User data message
--- Checksum validity
+- Source address
+- Destination address
+- Packet length
+- P-TMSI
+- TLLI
+- User data message
+- Checksum validity
 If all tests pass, you will see "Test Passed" for each packet.
+
+## Project Structure
+gprs_gen_decoder/
+│
+├── gprs_packet_generator.py  # Contains the GPRSPacketGenerator class
+├── gprs_packet_decoder.py    # Contains the GPRSPacketDecoder class
+├── main.py                   # Example usage of the generator and decoder
+└── README.md                 # Project documentation
+
+## Classes
+
+### GPRSPacketGenerator
+Responsible for generating GPRS packets with the following structure:
+
+- Header: Includes source and destination addresses, packet length.
+- Payload: Contains P-TMSI, TLLI, and user data.
+- Checksum: Ensures data integrity.
+
+Methods:
+__init__(coding_scheme): Initializes the generator with a specific coding scheme.
+generate_random_message(length): Generates a random string of specified length.
+generate_packet(): Generates a GPRS packet and returns the packet and original message.
+calculate_checksum(data): Calculates the checksum for error detection.
+
+### GPRSPacketDecoder
+Responsible for decoding GPRS packets and extracting relevant data.
+
+Methods
+__init__(coding_scheme): Initializes the decoder with a specific coding scheme.
+decode_packet(packet): Decodes a GPRS packet and returns the extracted data.
+calculate_checksum(data): Calculates the checksum for error detection.
+
+
+
