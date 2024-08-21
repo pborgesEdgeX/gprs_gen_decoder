@@ -109,5 +109,7 @@ __init__(coding_scheme): Initializes the decoder with a specific coding scheme.
 decode_packet(packet): Decodes a GPRS packet and returns the extracted data.
 calculate_checksum(data): Calculates the checksum for error detection.
 
+# Contributors
+Paulo Borges (pborges7@icloud.com)
 
 
