@@ -12,23 +12,6 @@ class GPRSPacketGenerator:
     GPRSPacketGenerator is responsible for generating GPRS packets containing a header,
     payload with P-TMSI and TLLI, user data, and a checksum.
     The generated packets adhere to different coding schemes: CS1, CS2, CS3, and CS4.
-    It follows the following structure:
-         +---------------+
-        |  Header     |
-        +---------------+
-        |  Source Address  |
-        |  Destination Address |
-        |  Packet Length    |
-        |  Sequence Number  |
-        +---------------+
-        |  Payload     |
-        |  P-TMSI (32 bits) |
-        |  TLLI          |
-        |  User Data    |
-        +---------------+
-        |  Checksum    |
-        +---------------+
-
     """
 
     # Define coding scheme limits
@@ -39,24 +22,32 @@ class GPRSPacketGenerator:
         'CS4': 52  # Max octets for CS4
     }
 
-    def __init__(self, coding_scheme='CS1'):
+    def __init__(self, coding_scheme='CS1', mode='single', packet_limit=10):
         """
-        Initializes the GPRSPacketGenerator with a specific coding scheme.
+        Initializes the GPRSPacketGenerator with a specific coding scheme and mode.
         Args:
             coding_scheme (str): The coding scheme to be used ('CS1', 'CS2', 'CS3', or 'CS4').
+            mode (str): Mode of operation, either 'single' or 'stream'.
+            packet_limit (int): Number of packets to generate in both single and stream mode.
         """
         if coding_scheme not in self.CODING_SCHEME_LIMITS:
             logging.error(f"Unsupported coding scheme provided: {coding_scheme}")
             raise ValueError("Unsupported coding scheme provided.")
 
+        if mode not in ['single', 'stream']:
+            logging.error(f"Unsupported mode provided: {mode}")
+            raise ValueError("Unsupported mode provided. Choose 'single' or 'stream'.")
+
         self.coding_scheme = coding_scheme
+        self.mode = mode
+        self.packet_limit = packet_limit
         self.max_payload_size = self.CODING_SCHEME_LIMITS[coding_scheme]
         self.header_format = '!BBH'
         self.header_length = struct.calcsize(self.header_format)
         self.checksum_format = '!H'
         self.checksum_length = struct.calcsize(self.checksum_format)
 
-        logging.info(f"Initialized GPRSPacketGenerator with coding scheme: {coding_scheme}")
+        logging.info(f"Initialized GPRSPacketGenerator with coding scheme: {coding_scheme} in {mode} mode")
 
     def generate_random_message(self, length):
         """
@@ -92,6 +83,24 @@ class GPRSPacketGenerator:
         logging.info(f"Generated packet with source: {source}, destination: {destination}, length: {length}")
         return packet, message
 
+    def generate_stream(self):
+        """
+        Generate a stream of GPRS packets according to the packet_limit, concatenate them into a single byte array.
+        Returns:
+            bytes: A concatenated byte array containing all the generated packets.
+            list: A list of original messages for verification.
+        """
+        concatenated_packets = bytearray()
+        messages = []
+
+        for i in range(self.packet_limit):
+            packet, message = self.generate_packet()
+            concatenated_packets.extend(packet)
+            messages.append(message)
+            logging.info(f"Generated packet {i + 1}/{self.packet_limit} in stream mode.")
+
+        return concatenated_packets, messages
+
     def calculate_checksum(self, data):
         """
         Calculate the checksum for error detection.
@@ -103,6 +112,24 @@ class GPRSPacketGenerator:
         checksum = sum(data) & 0xFFFF
         logging.debug(f"Calculated checksum: {checksum}")
         return checksum
+
+    def run(self):
+        """
+        Run the packet generation based on the selected mode.
+        Returns:
+            tuple: Two elements - a byte array or a list of packets, and a list of messages.
+        """
+        if self.mode == 'single':
+            packets = []
+            messages = []
+            for i in range(self.packet_limit):
+                packet, message = self.generate_packet()
+                packets.append(packet)
+                messages.append(message)
+                logging.info(f"Generated packet {i + 1}/{self.packet_limit} in single mode.")
+            return packets, messages
+        elif self.mode == 'stream':
+            return self.generate_stream()
 
 
 class GPRSPacketDecoder:
@@ -159,7 +186,7 @@ class GPRSPacketDecoder:
 
         checksum_start = payload_end
         received_checksum = \
-            struct.unpack(self.checksum_format, packet[checksum_start:checksum_start + self.checksum_length])[0]
+        struct.unpack(self.checksum_format, packet[checksum_start:checksum_start + self.checksum_length])[0]
         calculated_checksum = self.calculate_checksum(packet[:checksum_start])
         checksum_valid = received_checksum == calculated_checksum
 
@@ -174,6 +201,30 @@ class GPRSPacketDecoder:
             'message': message,
             'checksum_valid': checksum_valid
         }
+
+    def decode_stream(self, concatenated_packets):
+        """
+        Decode a concatenated stream of GPRS packets.
+        Args:
+            concatenated_packets (bytes): The raw byte array containing concatenated packets.
+        Returns:
+            list: A list of dictionaries, each containing decoded information for one packet.
+        """
+        packets_info = []
+        i = 0
+
+        while i < len(concatenated_packets):
+            try:
+                packet_length = struct.unpack('!H', concatenated_packets[i + 2:i + 4])[0]
+                packet = concatenated_packets[i:i + packet_length]
+                decoded_info = self.decode_packet(packet)
+                packets_info.append(decoded_info)
+                i += packet_length
+            except Exception as e:
+                logging.error(f"Error decoding packet at index {i}: {str(e)}")
+                break
+
+        return packets_info
 
     def calculate_checksum(self, data):
         """
@@ -194,31 +245,54 @@ if __name__ == "__main__":
     for scheme in coding_schemes:
         logging.info(f"--- Testing Coding Scheme: {scheme} ---")
 
-        generator = GPRSPacketGenerator(scheme)
+        # Initialize generator in stream mode for testing
+        generator = GPRSPacketGenerator(scheme, mode='stream', packet_limit=100)
         decoder = GPRSPacketDecoder(scheme)
 
-        for i in range(10):
-            # Generate and decode packet
-            packet, original_message = generator.generate_packet()
-            decoded_data = decoder.decode_packet(packet)
+        packets, messages = generator.run()
 
-            # Log the details of the decoded packet
-            logging.info("*" * 40)
-            logging.info(f"Packet {i + 1} Details:")
-            logging.info(f"Coding Scheme: {scheme}")
-            logging.info(f"Source: {decoded_data['source']}")
-            logging.info(f"Destination: {decoded_data['destination']}")
-            logging.info(f"Length: {decoded_data['length']}")
-            logging.info(f"P-TMSI: {decoded_data['P-TMSI']}")
-            logging.info(f"TLLI: {decoded_data['TLLI']}")
-            logging.info(f"Generated Packet: {packet}")
-            logging.info(f"Generated Message: {original_message}")
-            logging.info(f"Decoded Message: {decoded_data['message']}")
-            logging.info(f"Checksum Valid: {decoded_data['checksum_valid']}")
+        if generator.mode == 'single':
+            for i, packet in enumerate(packets):
+                decoded_data = decoder.decode_packet(packet)
 
-            # Verify that the original and decoded messages match
-            assert original_message == decoded_data['message'], "Message mismatch!"
-            assert decoded_data['checksum_valid'], "Checksum validation failed!"
+                # Log the details of the decoded packet
+                logging.info("*" * 40)
+                logging.info(f"Packet {i + 1} Details:")
+                logging.info(f"Coding Scheme: {scheme}")
+                logging.info(f"Source: {decoded_data['source']}")
+                logging.info(f"Destination: {decoded_data['destination']}")
+                logging.info(f"Length: {decoded_data['length']}")
+                logging.info(f"P-TMSI: {decoded_data['P-TMSI']}")
+                logging.info(f"TLLI: {decoded_data['TLLI']}")
+                logging.info(f"Generated Message: {messages[i]}")
+                logging.info(f"Decoded Message: {decoded_data['message']}")
+                logging.info(f"Checksum Valid: {decoded_data['checksum_valid']}")
 
-            logging.info("Test Passed")
+                # Verify that the original and decoded messages match
+                assert messages[i] == decoded_data['message'], "Message mismatch!"
+                assert decoded_data['checksum_valid'], "Checksum validation failed!"
+
+                logging.info("Test Passed")
+
+        elif generator.mode == 'stream':
+            decoded_packets = decoder.decode_stream(packets)
+
+            for i, decoded_data in enumerate(decoded_packets):
+                logging.info("*" * 40)
+                logging.info(f"Packet {i + 1} Details:")
+                logging.info(f"Coding Scheme: {scheme}")
+                logging.info(f"Source: {decoded_data['source']}")
+                logging.info(f"Destination: {decoded_data['destination']}")
+                logging.info(f"Length: {decoded_data['length']}")
+                logging.info(f"P-TMSI: {decoded_data['P-TMSI']}")
+                logging.info(f"TLLI: {decoded_data['TLLI']}")
+                logging.info(f"Generated Message: {messages[i]}")
+                logging.info(f"Decoded Message: {decoded_data['message']}")
+                logging.info(f"Checksum Valid: {decoded_data['checksum_valid']}")
+
+                # Verify that the original and decoded messages match
+                assert messages[i] == decoded_data['message'], "Message mismatch!"
+                assert decoded_data['checksum_valid'], "Checksum validation failed!"
+
+                logging.info("Test Passed")
 
