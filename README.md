@@ -188,7 +188,8 @@ calculate_checksum(data): Calculates the checksum for error detection.
 - Checksum Validation: Ensures data integrity using checksum validation.
 
 ## Future Work
-- Stream or single mode have not yet been stress tested, or tested with real data.
+- Stream or single mode have not yet been stress tested, or tested with real data. This means handling short frames, de-synchornized packets, or corrupt payloads have not been explored yet.
+- Work on AX25 streaming mode, specially handling incomplete payloads, short frames, and introduce better strategies to synchronize. 
 
 # Contributors
 Paulo Borges (pborges7@icloud.com)
