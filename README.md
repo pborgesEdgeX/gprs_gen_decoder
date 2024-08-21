@@ -24,11 +24,17 @@ This project provides a Python implementation for generating and decoding GPRS (
 1. Clone the repository:
    ```bash
    git clone https://github.com/pborgesEdgeX/gprs_gen_decoder.git
+   ```
 2. Navigate to the project directory:
 ```bash
-Copy code
 cd gprs_gen_decoder
 ```
+
+3. Run the gprs_gen_decoder.py
+
+Now, feel free to modify as needed:
+
+```python
 import logging
 from grps_gen_decoder import GPRSPacketGenerator, GPRSPacketDecoder
 
